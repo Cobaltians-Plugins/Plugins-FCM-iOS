@@ -149,9 +149,9 @@ static NSString *mCallback;
 }
 
 +(void)onTokenReceived{
-    NSDictionary *data = [[NSDictionary alloc] init];
+    NSMutableDictionary *data = [[NSMutableDictionary alloc] init];
     if (mController != nil && mToken != nil && mCallback != nil){
-        [data setValue:mToken forKey:kToken];
+        [data setObject:mToken forKey:kToken];
         [mController sendCallback:mCallback withData:data];
         mController = nil;
         mCallback = nil;

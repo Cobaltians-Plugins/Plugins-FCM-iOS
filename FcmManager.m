@@ -77,13 +77,14 @@ static NSString *mCallback;
                 
                 id topic = [donnees objectForKey:kTopic];
                 if (topic != nil && [topic isKindOfClass:[NSString class]]){
-                    
-                    [[FIRMessaging messaging] subscribeToTopic:[topic stringValue]];
-                    NSLog(@"Inscription au topic %@", [topic stringValue]);
+                    NSMutableString *topicString = [[NSMutableString init] initWithString: @"/topics/"];
+                    [topicString appendString:topic];
+                    [[FIRMessaging messaging] subscribeToTopic:topicString];
+                    NSLog(@"Inscription au topic %@", topicString);
                 }
                 
                 if (callback != nil && [callback isKindOfClass:[NSString class]]){
-                    [viewController sendCallback:[callback stringValue] withData:nil];
+                    [viewController sendCallback:callback withData:nil];
                 }
             }
         }
@@ -92,13 +93,14 @@ static NSString *mCallback;
             if (donnees != nil && [donnees isKindOfClass:[NSDictionary class]]){
                 id topic = [donnees objectForKey:kTopic];
                 if (topic != nil && [topic isKindOfClass:[NSString class]]){
-                    
-                    [[FIRMessaging messaging] unsubscribeFromTopic:[topic stringValue]];
-                    NSLog(@"Désinscription du topic %@", [topic stringValue]);
+                    NSMutableString *topicString = [[NSMutableString init] initWithString: @"/topics/"];
+                    [topicString appendString:topic];
+                    [[FIRMessaging messaging] unsubscribeFromTopic:topicString];
+                    NSLog(@"Désinscription du topic %@", topicString);
                 }
                 
                 if (callback != nil && [callback isKindOfClass:[NSString class]]){
-                    [viewController sendCallback:[callback stringValue] withData:nil];
+                    [viewController sendCallback:callback withData:nil];
                 }
             }
         }

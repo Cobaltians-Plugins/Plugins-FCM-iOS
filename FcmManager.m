@@ -77,7 +77,7 @@ static NSString *mCallback;
                 
                 id topic = [donnees objectForKey:kTopic];
                 if (topic != nil && [topic isKindOfClass:[NSString class]]){
-                    NSString *topicString = [[NSString init] initWithString: topic];
+                    NSString *topicString = topic;
                     [[FIRMessaging messaging] subscribeToTopic:topicString];
                     NSLog(@"Inscription au topic %@", topicString);
                 }
@@ -92,7 +92,7 @@ static NSString *mCallback;
             if (donnees != nil && [donnees isKindOfClass:[NSDictionary class]]){
                 id topic = [donnees objectForKey:kTopic];
                 if (topic != nil && [topic isKindOfClass:[NSString class]]){
-                    NSString *topicString = [[NSString init] initWithString: topic];
+                    NSString *topicString = topic;
                     [[FIRMessaging messaging] unsubscribeFromTopic:topicString];
                     NSLog(@"Désinscription du topic %@", topicString);
                 }

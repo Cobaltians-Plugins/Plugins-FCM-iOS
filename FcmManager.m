@@ -68,8 +68,9 @@ static NSString *mCallback;
         if ([kActionGetToken isEqualToString:action]){
             if (callback != nil && [callback isKindOfClass:[NSString class]]){
                 mCallback = callback;
+                mController = viewController;
+                [FcmManager onTokenReceived];
             }
-            // TODO: getToken
         }
         
         if ([kActionSubscribe isEqualToString:action]){

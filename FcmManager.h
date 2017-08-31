@@ -8,6 +8,7 @@
 
 #import <Cobalt/CobaltAbstractPlugin.h>
 #import <Cobalt/CobaltViewController.h>
+
 @import Firebase;
 @import FirebaseMessaging;
 
@@ -28,5 +29,6 @@
 +(void)getToken;
 +(void)setToken:(NSString *)token;
 +(void)onTokenReceived;
++ (void)didRegisterNotifications:(UIUserNotificationType)notificationTypes;
 
 @end

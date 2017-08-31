@@ -11,16 +11,11 @@
 #import "FcmManager.h"
 
 #if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
-@import UserNotifications;
-#endif
-
-#if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
-@interface CobaltFcmPluginInit() <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
+@interface CobaltFcmPluginInit() <FIRMessagingDelegate>
 @end
 #endif
 
 @implementation CobaltFcmPluginInit : NSObject
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -61,23 +56,6 @@ static CobaltFcmPluginInit *sInstance = nil;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)initFCM:(UIApplication*) application{
-    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
-        // iOS 7.1 or earlier
-        UIRemoteNotificationType allNotificationTypes =
-        (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeBadge);
-        [application registerForRemoteNotificationTypes:allNotificationTypes];
-    } else {
-        // iOS 8 or later
-        // [END_EXCLUDE]
-        UIUserNotificationType allNotificationTypes =
-        (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-        UIUserNotificationSettings *settings =
-        [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
-        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
-        [[UIApplication sharedApplication] registerForRemoteNotifications];
-        [UNUserNotificationCenter currentNotificationCenter].delegate = self;
-    }
-    
     // [START configure_firebase]
     [FIRApp configure];
     // [END configure_firebase]

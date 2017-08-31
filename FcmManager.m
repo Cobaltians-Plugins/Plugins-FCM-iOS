@@ -7,8 +7,13 @@
 //
 
 #import <Foundation/Foundation.h>
+
 #import "FcmManager.h"
 #import "CobaltFcmPluginInit.h"
+
+#if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
+@import UserNotifications;
+#endif
 
 @implementation FcmManager : CobaltAbstractPlugin
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +74,7 @@ static NSString *mCallback;
             if (callback != nil && [callback isKindOfClass:[NSString class]]){
                 mCallback = callback;
                 mController = viewController;
-                [FcmManager onTokenReceived];
+                [FcmManager registerRemoteNotifications];
             }
         }
         
@@ -106,7 +111,36 @@ static NSString *mCallback;
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
 
+#pragma mark NOTIFICATION REGISTRATION
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
++ (void)registerRemoteNotifications {
+    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
+        // iOS 7.1 or earlier
+        UIRemoteNotificationType allNotificationTypes = UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeBadge;
+        [[UIApplication sharedApplication] registerForRemoteNotificationTypes:allNotificationTypes];
+    }
+    else {
+        // iOS 8 or later
+        // [END_EXCLUDE]
+        UIUserNotificationType allNotificationTypes =
+        (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
+        UIUserNotificationSettings *settings =
+        [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
+        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+        [[UIApplication sharedApplication] registerForRemoteNotifications];
+        [UNUserNotificationCenter currentNotificationCenter].delegate = [CobaltFcmPluginInit sharedInstance];
+    }
+}
+
++ (void)didRegisterNotifications:(UIUserNotificationType)notificationTypes {
+    if (notificationTypes != UIUserNotificationTypeNone) {
+        [FcmManager onTokenReceived];
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -15,8 +15,10 @@
 #define kJSTopic            @"topic"
 
 @interface FCMPlugin() {
+    NSString *_token;
     NSString *_getTokenCallback;
     __weak CobaltViewController *_getTokenViewController;
+    NSMutableArray *_pendingActions;
 }
 
 @end
@@ -37,6 +39,8 @@ static FCMPlugin *instance;
         if ([FIRApp defaultApp] == nil) {
             [FIRApp configure];
         }
+        _token = [FIRMessaging messaging].FCMToken;
+        _pendingActions = [NSMutableArray array];
     }
     
     return self;
@@ -116,7 +120,13 @@ fromViewController:(CobaltViewController *)viewController {
                 id topic = [data objectForKey:kJSTopic];
                 if (topic != nil
                     && [topic isKindOfClass:[NSString class]]) {
-                    [[FIRMessaging messaging] subscribeToTopic:topic];
+                    if (_token != nil) {
+                        [[FIRMessaging messaging] subscribeToTopic:topic];
+                    }
+                    else {
+                        [_pendingActions addObject:@{kJSAction: JSActionSubscribe,
+                                                     kJSTopic: topic}];
+                    }
                 }
             }
         }
@@ -126,7 +136,13 @@ fromViewController:(CobaltViewController *)viewController {
                 id topic = [data objectForKey:kJSTopic];
                 if (topic != nil
                     && [topic isKindOfClass:[NSString class]]) {
-                    [[FIRMessaging messaging] unsubscribeFromTopic:topic];
+                    if (_token != nil) {
+                        [[FIRMessaging messaging] unsubscribeFromTopic:topic];
+                    }
+                    else {
+                        [_pendingActions addObject:@{kJSAction: JSActionUnsubscribe,
+                                                     kJSTopic: topic}];
+                    }
                 }
             }
         }
@@ -183,9 +199,10 @@ fromViewController:(CobaltViewController *)viewController {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 - (void)getToken {
-    NSString *token = [FIRMessaging messaging].FCMToken;
-    if (token != nil) {
-        [self sendToken:token];
+    _token = [FIRMessaging messaging].FCMToken;
+    if (_token != nil) {
+        [self sendToken:_token];
+        [self executePendingActions];
     }
 }
 
@@ -199,13 +216,31 @@ fromViewController:(CobaltViewController *)viewController {
     }
 }
 
+- (void)executePendingActions {
+    for (NSDictionary *actionDict in _pendingActions) {
+        NSString *action = actionDict[kJSAction];
+        NSString *topic = actionDict[kJSTopic];
+        
+        if ([JSActionSubscribe isEqualToString:action]) {
+            [[FIRMessaging messaging] subscribeToTopic:topic];
+        }
+        else if ([JSActionUnsubscribe isEqualToString:action]) {
+            [[FIRMessaging messaging] unsubscribeFromTopic:topic];
+        }
+    }
+    
+    [_pendingActions removeAllObjects];
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark FIRMessagingDelegate
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 - (void)messaging:(nonnull FIRMessaging *)messaging
 didRefreshRegistrationToken:(nonnull NSString *)fcmToken {
-    [self sendToken:fcmToken];
+    _token = fcmToken;
+    [self sendToken:_token];
+    [self executePendingActions];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -18,5 +18,6 @@
 
 + (instancetype)sharedInstance;
 - (void)setNotificationDelegate:(id<UNUserNotificationCenterDelegate>)delegate;
+- (void)didRegisterForNotifications;
 
 @end

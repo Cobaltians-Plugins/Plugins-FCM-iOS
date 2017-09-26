@@ -15,7 +15,7 @@
 #define kJSTopic            @"topic"
 
 @interface FCMPlugin() {
-    NSString *_token;
+    BOOL _registeredForNotifications;
     NSString *_getTokenCallback;
     __weak CobaltViewController *_getTokenViewController;
     NSMutableArray *_pendingActions;
@@ -39,7 +39,6 @@ static FCMPlugin *instance;
         if ([FIRApp defaultApp] == nil) {
             [FIRApp configure];
         }
-        _token = [FIRMessaging messaging].FCMToken;
         _pendingActions = [NSMutableArray array];
     }
     
@@ -120,7 +119,7 @@ fromViewController:(CobaltViewController *)viewController {
                 id topic = [data objectForKey:kJSTopic];
                 if (topic != nil
                     && [topic isKindOfClass:[NSString class]]) {
-                    if (_token != nil) {
+                    if (_registeredForNotifications) {
                         [[FIRMessaging messaging] subscribeToTopic:topic];
                     }
                     else {
@@ -136,7 +135,7 @@ fromViewController:(CobaltViewController *)viewController {
                 id topic = [data objectForKey:kJSTopic];
                 if (topic != nil
                     && [topic isKindOfClass:[NSString class]]) {
-                    if (_token != nil) {
+                    if (_registeredForNotifications) {
                         [[FIRMessaging messaging] unsubscribeFromTopic:topic];
                     }
                     else {
@@ -179,7 +178,10 @@ fromViewController:(CobaltViewController *)viewController {
         UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
         [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:authOptions
                                                                             completionHandler:^(BOOL granted, NSError * _Nullable error) {
-                                                                            
+                                                                                if (granted) {
+                                                                                    _registeredForNotifications = YES;
+                                                                                    [self executePendingActions];
+                                                                                }
                                                                             }];
 #endif
     }
@@ -199,10 +201,9 @@ fromViewController:(CobaltViewController *)viewController {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 - (void)getToken {
-    _token = [FIRMessaging messaging].FCMToken;
-    if (_token != nil) {
-        [self sendToken:_token];
-        [self executePendingActions];
+    NSString *token = [FIRMessaging messaging].FCMToken;
+    if (token != nil) {
+        [self sendToken:token];
     }
 }
 
@@ -238,8 +239,15 @@ fromViewController:(CobaltViewController *)viewController {
 
 - (void)messaging:(nonnull FIRMessaging *)messaging
 didRefreshRegistrationToken:(nonnull NSString *)fcmToken {
-    _token = fcmToken;
-    [self sendToken:_token];
+    [self sendToken:fcmToken];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark UIApplicationDelegate
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)didRegisterForNotifications {
+    _registeredForNotifications = YES;
     [self executePendingActions];
 }
 

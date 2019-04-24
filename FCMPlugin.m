@@ -45,16 +45,6 @@ static FCMPlugin *instance;
     return self;
 }
 
-+ (instancetype)sharedInstance {
-    @synchronized(self) {
-        if (instance == nil) {
-            instance = [[self alloc] init];
-        }
-    }
-    
-    return instance;
-}
-
 // TODO: update CobaltAbstractPlugin to avoid overriding this method
 + (CobaltAbstractPlugin *)sharedInstanceWithCobaltViewController:(CobaltViewController *)viewController {
     @synchronized(self) {

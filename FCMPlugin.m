@@ -7,6 +7,7 @@
 //
 
 #import "FCMPlugin.h"
+#import <Cobalt/PubSub.h>
 
 #define JSActionGetToken    @"getToken"
 #define JSActionSubscribe   @"subscribeToTopic"
@@ -17,7 +18,6 @@
 @interface FCMPlugin() {
     BOOL _registeredForNotifications;
     NSString *_getTokenCallback;
-    __weak CobaltViewController *_getTokenViewController;
     NSMutableArray *_pendingActions;
 }
 
@@ -43,16 +43,6 @@ static FCMPlugin *instance;
     }
     
     return self;
-}
-
-+ (instancetype)sharedInstance {
-    @synchronized(self) {
-        if (instance == nil) {
-            instance = [[self alloc] init];
-        }
-    }
-    
-    return instance;
 }
 
 // TODO: update CobaltAbstractPlugin to avoid overriding this method
@@ -83,65 +73,49 @@ static FCMPlugin *instance;
 #pragma mark COBALT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
-- (void)onMessageFromCobaltController:(CobaltViewController *)viewController
-                              andData:(NSDictionary *)data {
-    [self onMessage:data
- fromViewController:viewController];
-}
-
-- (void)onMessageFromWebLayerWithCobaltController:(CobaltViewController *)viewController
-                                          andData:(NSDictionary *)data {
-    [self onMessage:data
- fromViewController:viewController];
-}
-
-- (void)onMessage:(NSDictionary *)message
-fromViewController:(CobaltViewController *)viewController {
-    id action = [message objectForKey:kJSAction];
-    id data = [message objectForKey:kJSData];
-    id callback = [message objectForKey:kJSCallback];
+- (void)onMessageFromWebView:(WebViewType)webView
+          inCobaltController:(nonnull CobaltViewController *)viewController
+                  withAction:(nonnull NSString *)action
+                        data:(nullable NSDictionary *)data
+          andCallbackChannel:(nullable NSString *)callbackChannel{
     
-    if (action != nil
-        && [action isKindOfClass:[NSString class]]) {
-        if ([JSActionGetToken isEqualToString:action]) {
-            if (callback != nil
-                && [callback isKindOfClass:[NSString class]]) {
-                _getTokenCallback = callback;
-                _getTokenViewController = viewController;
-                [self registerForRemoteNotifications];
-                [self getToken];
-            }
+
+    if ([JSActionGetToken isEqualToString:action]) {
+        if (callbackChannel != nil
+            && [callbackChannel isKindOfClass:[NSString class]]) {
+            _getTokenCallback = callbackChannel;
+            [self registerForRemoteNotifications];
+            [self getToken];
         }
-        else if ([JSActionSubscribe isEqualToString:action]) {
-            if (data != nil
-                && [data isKindOfClass:[NSDictionary class]]) {
-                id topic = [data objectForKey:kJSTopic];
-                if (topic != nil
-                    && [topic isKindOfClass:[NSString class]]) {
-                    if (_registeredForNotifications) {
-                        [[FIRMessaging messaging] subscribeToTopic:topic];
-                    }
-                    else {
-                        [_pendingActions addObject:@{kJSAction: JSActionSubscribe,
-                                                     kJSTopic: topic}];
-                    }
+    }
+    else if ([JSActionSubscribe isEqualToString:action]) {
+        if (data != nil
+            && [data isKindOfClass:[NSDictionary class]]) {
+            id topic = [data objectForKey:kJSTopic];
+            if (topic != nil
+                && [topic isKindOfClass:[NSString class]]) {
+                if (_registeredForNotifications) {
+                    [[FIRMessaging messaging] subscribeToTopic:topic];
+                }
+                else {
+                    [_pendingActions addObject:@{kJSAction: JSActionSubscribe,
+                                                 kJSTopic: topic}];
                 }
             }
         }
-        else if ([JSActionUnsubscribe isEqualToString:action]) {
-            if (data != nil
-                && [data isKindOfClass:[NSDictionary class]]) {
-                id topic = [data objectForKey:kJSTopic];
-                if (topic != nil
-                    && [topic isKindOfClass:[NSString class]]) {
-                    if (_registeredForNotifications) {
-                        [[FIRMessaging messaging] unsubscribeFromTopic:topic];
-                    }
-                    else {
-                        [_pendingActions addObject:@{kJSAction: JSActionUnsubscribe,
-                                                     kJSTopic: topic}];
-                    }
+    }
+    else if ([JSActionUnsubscribe isEqualToString:action]) {
+        if (data != nil
+            && [data isKindOfClass:[NSDictionary class]]) {
+            id topic = [data objectForKey:kJSTopic];
+            if (topic != nil
+                && [topic isKindOfClass:[NSString class]]) {
+                if (_registeredForNotifications) {
+                    [[FIRMessaging messaging] unsubscribeFromTopic:topic];
+                }
+                else {
+                    [_pendingActions addObject:@{kJSAction: JSActionUnsubscribe,
+                                                 kJSTopic: topic}];
                 }
             }
         }
@@ -208,11 +182,10 @@ fromViewController:(CobaltViewController *)viewController {
 }
 
 - (void)sendToken:(nonnull NSString *)token {
-    if (_getTokenViewController != nil
-        && _getTokenCallback != nil) {
-        [_getTokenViewController sendCallback:_getTokenCallback
-                                     withData:@{kJSToken: token}];
-        _getTokenViewController = nil;
+    if (_getTokenCallback != nil) {
+		[[PubSub sharedInstance] publishMessage:@{kJSToken: token}
+		                                      toChannel:_getTokenCallback];							 
+									 
         _getTokenCallback = nil;
     }
 }
